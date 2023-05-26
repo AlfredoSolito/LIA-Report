@@ -1,0 +1,165 @@
+// This is the LIA PI control  
+//min= 35 max= 945
+
+int sensor = A5;
+int SetP = 0;
+int actuator = 9;
+int PV = 0;
+int inputValue = 0;
+int CO = 0;
+int HYS;
+int buttonUP = 7;
+int buttonDOWN = 10;
+int buttonLEFT = 8;
+int buttonRIGHT = 6;
+int count;
+int Llastbuttonstate;
+int Rlastbuttonstate;
+int Rcurrentbuttonstate;
+int Lcurrentbuttonstate;
+int Ulastbuttonstate;
+int Ucurrentbuttonstate;
+int Dlastbuttonstate;
+int Dcurrentbuttonstate;
+int Error;
+float exCO;
+float kp;
+float ki;
+int integralAction;
+
+unsigned long previousMillis = 0;
+const long interval = 50;
+const long kiInterval = 100;
+unsigned long kipreviousMillis = 0;
+
+#include <LiquidCrystal.h>
+
+// initialize the library by associating any needed LCD interface pin
+// with the arduino pin number it is connected to
+const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+void setup() {
+  // put your setup code here, to run once:
+  pinMode(actuator, OUTPUT);
+    Serial.begin(9600);
+     lcd.begin(16,2);
+  pinMode(buttonUP, INPUT_PULLUP);
+  pinMode(buttonDOWN, INPUT_PULLUP);
+  pinMode(buttonLEFT, INPUT_PULLUP);
+  pinMode(buttonRIGHT, INPUT_PULLUP);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  PV = analogRead(sensor);
+  unsigned long kicurrentMillis = millis();
+
+   if (kicurrentMillis - kipreviousMillis >= kiInterval) {
+    kipreviousMillis = kicurrentMillis;
+
+    Error = SetP - PV;
+    integralAction = (integralAction + Error);
+    CO = (kp * Error)+(ki * integralAction);
+
+    if (CO > 255){
+      CO = 255;
+    }
+    if (CO < 0){
+      CO = 0;
+    }
+   }
+   exCO = CO/10;
+  if (Error < 0){
+    Error = 0;
+  }
+    if (exCO < 0){
+    exCO = 0;
+  }
+    if (exCO > 255){
+    exCO = 255;
+  }
+  
+
+  analogWrite(actuator, exCO);
+  lcd.setCursor(0, 0);
+
+  unsigned long currentMillis = millis();
+   if (currentMillis - previousMillis >= interval) {
+    previousMillis = currentMillis;
+
+    lcd.clear();
+   }
+  
+  Rlastbuttonstate = Rcurrentbuttonstate;
+  Llastbuttonstate = Lcurrentbuttonstate;
+  Lcurrentbuttonstate = digitalRead(buttonLEFT);
+  Rcurrentbuttonstate = digitalRead(buttonRIGHT);
+  if(Rlastbuttonstate == 1 && Rcurrentbuttonstate == 0) {
+    count = count+1;
+   
+  if(count > 3) {
+    count = 0;
+  }
+  }
+ 
+  if(Llastbuttonstate == 1 && Lcurrentbuttonstate == 0) {
+    count = count-1;
+   
+  if(count < 0) {
+    count = 3;
+  }
+  }
+  Ulastbuttonstate = Ucurrentbuttonstate;
+  Dlastbuttonstate = Dcurrentbuttonstate;
+  Ucurrentbuttonstate = digitalRead(buttonUP);
+  Dcurrentbuttonstate = digitalRead(buttonDOWN);
+  if(count == 0) {
+    lcd.print("PV=");
+    lcd.print(PV);
+    lcd.setCursor(0, 1);
+    lcd.print("Error=");
+    lcd.print(Error);
+
+  }
+
+  if(count == 1) {
+    lcd.print("SP=");
+    lcd.print(SetP);
+      if(Ulastbuttonstate == 1 && Ucurrentbuttonstate == 0) {
+        SetP = SetP+10;
+      }
+      if(Dlastbuttonstate == 1 && Dcurrentbuttonstate == 0) {
+        SetP = SetP-10;
+      }
+  }
+
+  if(count == 2){
+    lcd.print("kp");
+    lcd.print(kp);
+      if(Ulastbuttonstate == 1 && Ucurrentbuttonstate == 0) {
+        kp = kp+0.01;
+      }
+      if(Dlastbuttonstate == 1 && Dcurrentbuttonstate == 0) {
+        kp = kp-0.01;
+      }
+  }
+
+  if(count == 3){
+    lcd.print("ki");
+    lcd.print(ki);
+      if(Ulastbuttonstate == 1 && Ucurrentbuttonstate == 0) {
+        ki = ki+0.01;
+      }
+      if(Dlastbuttonstate == 1 && Dcurrentbuttonstate == 0) {
+        ki = ki-0.01;
+      }
+  }
+  Serial.print(PV);
+  Serial.print("\t");
+  Serial.print(SetP);
+  Serial.print("\t");
+  Serial.print(exCO);
+  Serial.print("\t");
+  Serial.println(Error);
+}
