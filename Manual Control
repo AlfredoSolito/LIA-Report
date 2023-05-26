@@ -1,0 +1,58 @@
+// This is the LIA Manual mode  
+//min= 35 max= 945
+
+int sensor = A5;
+int inputPin = A0;
+int actuator = 9;
+int PV = 0;
+int inputValue = 0;
+int CO = 0;
+
+unsigned long previousMillis = 0;
+const long interval = 75;
+
+#include <LiquidCrystal.h>
+
+// initialize the library by associating any needed LCD interface pin
+// with the arduino pin number it is connected to
+const int rs = 12, en = 11, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+void setup() {
+  // put your setup code here, to run once:
+  pinMode(actuator, OUTPUT);
+    Serial.begin(9600);
+     lcd.begin(16,2);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  PV = analogRead(sensor);
+  inputValue = analogRead(inputPin);
+  CO = map(inputValue, 0, 1023, 0, 255);
+  analogWrite(actuator, CO);
+
+  lcd.setCursor(0, 0);
+  lcd.print("Input= ");
+  lcd.print(inputValue);
+  lcd.setCursor(0,1);
+  lcd.print("CO=");
+  lcd.print(CO);
+  lcd.print("  PV= ");
+  lcd.print(PV);
+
+  unsigned long currentMillis = millis();
+
+   if (currentMillis - previousMillis >= interval) {
+    // save the last time you blinked the LED
+    previousMillis = currentMillis;
+
+    lcd.clear();
+   }
+  
+
+  Serial.print(inputValue);
+  Serial.print("\t");
+  Serial.println(PV);
+}
+
